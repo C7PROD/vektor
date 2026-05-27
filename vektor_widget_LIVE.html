@@ -5,547 +5,268 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VEKTOR — AI Voice Intelligence Agent</title>
   <style>
-    /* ── Reset & Base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --green:      #00ff88;
-      --green-dim:  #00cc66;
-      --green-dark: #003322;
-      --bg:         #050f0a;
-      --panel:      #081510;
-      --border:     #0d3322;
-      --text:       #ccffdd;
-      --text-dim:   #4d9966;
-      --red:        #ff4444;
-      --amber:      #ffaa00;
+      --green: #00ff88; --green-dim: #00cc66; --green-dark: #003322;
+      --bg: #050f0a; --panel: #081510; --border: #0d3322;
+      --text: #ccffdd; --text-dim: #4d9966; --red: #ff4444;
     }
-
     body {
-      background: var(--bg);
-      color: var(--text);
+      background: var(--bg); color: var(--text);
       font-family: 'Courier New', Courier, monospace;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; overflow: hidden;
     }
-
-    /* ── Scanline overlay ── */
     body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,255,100,0.015) 2px,
-        rgba(0,255,100,0.015) 4px
-      );
-      pointer-events: none;
-      z-index: 100;
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px,
+        rgba(0,255,100,0.015) 2px, rgba(0,255,100,0.015) 4px);
+      pointer-events: none; z-index: 100;
     }
-
-    /* ── HUD corner brackets ── */
-    .hud-corners {
-      position: fixed;
-      inset: 16px;
-      pointer-events: none;
-      z-index: 10;
-    }
-    .hud-corners::before,
-    .hud-corners::after,
-    .hud-corners span::before,
-    .hud-corners span::after {
-      content: '';
-      position: absolute;
-      width: 28px;
-      height: 28px;
-      border-color: var(--green-dim);
-      border-style: solid;
-      opacity: 0.5;
+    .hud-corners { position: fixed; inset: 16px; pointer-events: none; z-index: 10; }
+    .hud-corners::before, .hud-corners::after,
+    .hud-corners span::before, .hud-corners span::after {
+      content: ''; position: absolute; width: 28px; height: 28px;
+      border-color: var(--green-dim); border-style: solid; opacity: 0.5;
     }
     .hud-corners::before  { top:0;    left:0;  border-width: 2px 0 0 2px; }
     .hud-corners::after   { top:0;    right:0; border-width: 2px 2px 0 0; }
     .hud-corners span::before { bottom:0; left:0;  border-width: 0 0 2px 2px; }
     .hud-corners span::after  { bottom:0; right:0; border-width: 0 2px 2px 0; }
-
-    /* ── Status bar (top) ── */
     .status-bar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 28px;
-      background: rgba(0,30,15,0.9);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      font-size: 9px;
-      letter-spacing: 0.12em;
-      color: var(--text-dim);
-      z-index: 50;
+      position: fixed; top: 0; left: 0; right: 0; height: 28px;
+      background: rgba(0,30,15,0.9); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; font-size: 9px; letter-spacing: 0.12em;
+      color: var(--text-dim); z-index: 50;
     }
-    .status-bar .blink {
-      animation: blink 1.4s step-end infinite;
-    }
+    .blink { animation: blink 1.4s step-end infinite; }
     @keyframes blink { 50% { opacity: 0; } }
-
-    /* ── Footer bar ── */
     .footer-bar {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 24px;
-      background: rgba(0,30,15,0.9);
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 8px;
-      letter-spacing: 0.15em;
-      color: var(--text-dim);
-      z-index: 50;
+      position: fixed; bottom: 0; left: 0; right: 0; height: 24px;
+      background: rgba(0,30,15,0.9); border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; letter-spacing: 0.15em; color: var(--text-dim); z-index: 50;
     }
-
-    /* ── Main panel ── */
     .panel {
-      width: 420px;
-      max-width: 95vw;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0;
-      position: relative;
+      width: 420px; max-width: 95vw; background: var(--panel);
+      border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center;
     }
-
-    /* ── Panel header ── */
     .panel-header {
-      width: 100%;
-      padding: 12px 20px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      width: 100%; padding: 12px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .panel-header .title {
-      font-size: 11px;
-      letter-spacing: 0.25em;
-      color: var(--green);
-      font-weight: bold;
-    }
-    .panel-header .build {
-      font-size: 9px;
-      color: var(--text-dim);
-      letter-spacing: 0.1em;
-    }
-
-    /* ── Visualizer area ── */
+    .panel-header .title { font-size: 11px; letter-spacing: 0.25em; color: var(--green); font-weight: bold; }
+    .panel-header .build { font-size: 9px; color: var(--text-dim); letter-spacing: 0.1em; }
     .visualizer {
-      width: 100%;
-      height: 200px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      background: radial-gradient(ellipse at center, #001a0d 0%, var(--panel) 70%);
+      width: 100%; height: 200px; display: flex; align-items: center; justify-content: center;
+      position: relative; background: radial-gradient(ellipse at center, #001a0d 0%, var(--panel) 70%);
     }
-
-    /* Canvas for animations */
-    #vis-canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* ── Mode label ── */
+    #vis-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
     .mode-label {
-      position: absolute;
-      bottom: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 10px;
-      letter-spacing: 0.3em;
-      color: var(--green);
-      font-weight: bold;
-      transition: opacity 0.3s;
+      position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+      font-size: 10px; letter-spacing: 0.3em; color: var(--green); font-weight: bold;
     }
-
-    /* ── Mode indicator row ── */
     .mode-row {
-      width: 100%;
-      padding: 10px 20px;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
+      width: 100%; padding: 10px 20px; border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border); display: flex; gap: 8px;
+      align-items: center; justify-content: center; flex-wrap: wrap;
     }
     .mode-pip {
-      font-size: 8px;
-      letter-spacing: 0.12em;
-      color: var(--text-dim);
-      padding: 2px 6px;
-      border: 1px solid var(--border);
+      font-size: 8px; letter-spacing: 0.12em; color: var(--text-dim);
+      padding: 2px 6px; border: 1px solid var(--border);
     }
-    .mode-pip.active {
-      color: var(--green);
-      border-color: var(--green-dim);
-      background: var(--green-dark);
-    }
-
-    /* ── Controls ── */
-    .controls {
-      width: 100%;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-    }
-
+    .controls { width: 100%; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .btn-activate {
-      width: 100%;
-      height: 44px;
-      background: transparent;
-      border: 1px solid var(--green-dim);
-      color: var(--green);
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 11px;
-      letter-spacing: 0.3em;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
+      width: 100%; height: 44px; background: transparent;
+      border: 1px solid var(--green-dim); color: var(--green);
+      font-family: 'Courier New', Courier, monospace; font-size: 11px;
+      letter-spacing: 0.3em; cursor: pointer;
       transition: background 0.2s, box-shadow 0.2s;
     }
-    .btn-activate:hover {
-      background: var(--green-dark);
-      box-shadow: 0 0 16px rgba(0,255,136,0.15);
-    }
-    .btn-activate:active { opacity: 0.8; }
-    .btn-activate.active {
-      border-color: var(--red);
-      color: var(--red);
-    }
-    .btn-activate.active:hover { background: rgba(255,50,50,0.08); }
-
-    .status-text {
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      color: var(--text-dim);
-      text-align: center;
-    }
-
-    /* ── Animations ── */
-
-    /* STANDBY: slow breathing ring */
-    @keyframes breathe {
-      0%, 100% { transform: scale(1);   opacity: 0.6; }
-      50%       { transform: scale(1.08); opacity: 1.0; }
-    }
-
-    /* LISTENING: sonar pulse */
-    @keyframes sonar {
-      0%   { transform: scale(0.3); opacity: 0.8; }
-      100% { transform: scale(2.2); opacity: 0;   }
-    }
-
-    /* TRANSMITTING: waveform bars */
-    @keyframes wave1 { 0%,100%{height:6px}  50%{height:32px} }
-    @keyframes wave2 { 0%,100%{height:14px} 30%{height:44px} }
-    @keyframes wave3 { 0%,100%{height:8px}  40%{height:38px} }
-    @keyframes wave4 { 0%,100%{height:20px} 20%{height:28px} }
-    @keyframes wave5 { 0%,100%{height:10px} 60%{height:50px} }
-    @keyframes wave6 { 0%,100%{height:16px} 45%{height:36px} }
-    @keyframes wave7 { 0%,100%{height:6px}  55%{height:42px} }
-
-    /* ANALYZING: bounce dots */
-    @keyframes bounce {
-      0%,100% { transform: translateY(0);    opacity: 0.6; }
-      50%     { transform: translateY(-18px); opacity: 1.0; }
-    }
+    .btn-activate:hover { background: var(--green-dark); box-shadow: 0 0 16px rgba(0,255,136,0.15); }
+    .btn-activate:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-activate.active { border-color: var(--red); color: var(--red); }
+    .status-text { font-size: 9px; letter-spacing: 0.15em; color: var(--text-dim); text-align: center; min-height: 14px; }
+    elevenlabs-convai { position: fixed; bottom: -200px; left: -200px; opacity: 0; pointer-events: none; }
   </style>
 </head>
 <body>
-
-  <!-- HUD corners -->
   <div class="hud-corners"><span></span></div>
-
-  <!-- Status bar -->
   <div class="status-bar">
     <span>VEKTOR // CLASS 7 INTELLIGENCE SYSTEM</span>
     <span id="sys-time">--:--:-- UTC</span>
-    <span>SYS <span class="blink" style="color:var(--green)">■</span> ONLINE</span>
+    <span>SYS <span class="blink" style="color:var(--green)">&#9632;</span> ONLINE</span>
   </div>
-
-  <!-- Main panel -->
   <div class="panel">
-
     <div class="panel-header">
       <span class="title">VEKTOR</span>
       <span class="build">v3.3 // ELEVENLABS CONVAI</span>
     </div>
-
-    <!-- Visualizer -->
     <div class="visualizer">
       <canvas id="vis-canvas"></canvas>
       <div class="mode-label" id="mode-label">STANDBY</div>
     </div>
-
-    <!-- Mode pips -->
     <div class="mode-row">
-      <div class="mode-pip" id="pip-doctrine">DOCTRINE</div>
-      <div class="mode-pip" id="pip-intel">INTEL</div>
-      <div class="mode-pip" id="pip-loadout">LOADOUT</div>
-      <div class="mode-pip" id="pip-mining">MINING</div>
-      <div class="mode-pip" id="pip-osint">OSINT</div>
-      <div class="mode-pip" id="pip-opord">OPORD</div>
+      <div class="mode-pip">DOCTRINE</div>
+      <div class="mode-pip">INTEL</div>
+      <div class="mode-pip">LOADOUT</div>
+      <div class="mode-pip">MINING</div>
+      <div class="mode-pip">OSINT</div>
+      <div class="mode-pip">OPORD</div>
     </div>
-
-    <!-- Controls -->
     <div class="controls">
       <button class="btn-activate" id="btn-activate">[ ACTIVATE VEKTOR ]</button>
-      <div class="status-text" id="status-text">PRESS ACTIVATE TO BEGIN VOICE SESSION</div>
+      <div class="status-text" id="status-text">LOADING VOICE SYSTEMS...</div>
     </div>
-
   </div>
+  <div class="footer-bar">CLASS 7 CONSULTING &amp; PRODUCTIONS &nbsp;&middot;&nbsp; class7prod.com/vektor &nbsp;&middot;&nbsp; POWERED BY ELEVENLABS + CLAUDE</div>
 
-  <!-- Footer -->
-  <div class="footer-bar">CLASS 7 CONSULTING &amp; PRODUCTIONS &nbsp;·&nbsp; class7prod.com/vektor &nbsp;·&nbsp; POWERED BY ELEVENLABS + CLAUDE</div>
+  <!-- ElevenLabs widget runs hidden — our UI wraps it -->
+  <elevenlabs-convai agent-id="agent_4801kr7pt4b7fexbgtqnj2xsmztg"></elevenlabs-convai>
+  <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
 
-  <!-- ElevenLabs Client SDK (ESM CDN) -->
-  <script type="module">
-    import { Conversation } from 'https://cdn.jsdelivr.net/npm/@11labs/client@latest/dist/index.esm.js';
-
-    // ── CONFIG ─────────────────────────────────────────────────────────────────
-    const AGENT_ID = 'agent_4801kr7pt4b7fexbgtqnj2xsmztg';
-    // Replace with your ElevenLabs Conversational AI agent ID.
-    // Get it from: elevenlabs.io → Your Agent → Agent ID
-    // ──────────────────────────────────────────────────────────────────────────
-
-    // ── Canvas visualizer ──────────────────────────────────────────────────────
+  <script>
+    // ── Canvas visualizer ──────────────────────────────────────────────
     const canvas = document.getElementById('vis-canvas');
-    const ctx    = canvas.getContext('2d');
-    const GREEN       = '#00ff88';
-    const GREEN_DIM   = '#00cc66';
-    const GREEN_DARK  = 'rgba(0,255,136,0.08)';
-
-    let animFrame = null;
+    const ctx = canvas.getContext('2d');
     let currentMode = 'idle';
+    let breatheT = 0, analyzeT = 0, waveT = 0;
+    const sonarRings = [];
+    let sonarSpawn = 0;
+    const wavePhases = [0, 0.7, 1.3, 0.4, 1.8, 1.1, 0.9];
 
-    function resizeCanvas() {
-      canvas.width  = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    }
+    function resizeCanvas() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // ── Standby: breathing ring ────────────────────────────────────────────────
-    let breatheT = 0;
     function drawStandby() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
       breatheT += 0.02;
-      const scale   = 1 + Math.sin(breatheT) * 0.06;
-      const opacity = 0.5 + Math.sin(breatheT) * 0.3;
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
-      const r  = 42 * scale;
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(0,255,136,${opacity})`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // inner dot
-      ctx.beginPath();
-      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(0,255,136,${opacity * 0.8})`;
-      ctx.fill();
-
-      // crosshair ticks
-      const tick = 10;
-      ctx.strokeStyle = `rgba(0,255,136,${opacity * 0.4})`;
-      ctx.lineWidth = 1;
-      [[cx-r-tick, cy, cx-r+4, cy],
-       [cx+r-4,  cy, cx+r+tick, cy],
-       [cx, cy-r-tick, cx, cy-r+4],
-       [cx, cy+r-4,  cx, cy+r+tick]
-      ].forEach(([x1,y1,x2,y2]) => {
-        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-      });
+      const sc = 1+Math.sin(breatheT)*0.06, op = 0.5+Math.sin(breatheT)*0.3;
+      const cx=canvas.width/2, cy=canvas.height/2, r=42*sc;
+      ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(0,255,136,${op})`; ctx.lineWidth=2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,255,136,${op*0.8})`; ctx.fill();
+      ctx.strokeStyle=`rgba(0,255,136,${op*0.4})`; ctx.lineWidth=1;
+      const tk=10;
+      [[cx-r-tk,cy,cx-r+4,cy],[cx+r-4,cy,cx+r+tk,cy],[cx,cy-r-tk,cx,cy-r+4],[cx,cy+r-4,cx,cy+r+tk]]
+        .forEach(([x1,y1,x2,y2])=>{ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); });
     }
-
-    // ── Listening: sonar rings ─────────────────────────────────────────────────
-    const sonarRings = [];
-    let sonarSpawn = 0;
     function drawListening() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      sonarSpawn++;
-      if (sonarSpawn % 28 === 0) sonarRings.push({ r: 10, op: 0.9 });
-
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
-
-      for (let i = sonarRings.length - 1; i >= 0; i--) {
-        const ring = sonarRings[i];
-        ring.r  += 2.2;
-        ring.op -= 0.018;
-        if (ring.op <= 0) { sonarRings.splice(i, 1); continue; }
-        ctx.beginPath();
-        ctx.arc(cx, cy, ring.r, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(0,255,136,${ring.op})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      if(++sonarSpawn%28===0) sonarRings.push({r:10,op:0.9});
+      const cx=canvas.width/2, cy=canvas.height/2;
+      for(let i=sonarRings.length-1;i>=0;i--){
+        const rg=sonarRings[i]; rg.r+=2.2; rg.op-=0.018;
+        if(rg.op<=0){sonarRings.splice(i,1);continue;}
+        ctx.beginPath(); ctx.arc(cx,cy,rg.r,0,Math.PI*2);
+        ctx.strokeStyle=`rgba(0,255,136,${rg.op})`; ctx.lineWidth=1.5; ctx.stroke();
       }
-
-      // center pip
-      ctx.beginPath();
-      ctx.arc(cx, cy, 5, 0, Math.PI * 2);
-      ctx.fillStyle = GREEN;
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(cx,cy,5,0,Math.PI*2); ctx.fillStyle='#00ff88'; ctx.fill();
     }
-
-    // ── Analyzing: bouncing dots ───────────────────────────────────────────────
-    let analyzeT = 0;
     function drawAnalyzing() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      analyzeT += 0.07;
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
-      const offsets = [-24, 0, 24];
-      offsets.forEach((ox, i) => {
-        const bounce = Math.sin(analyzeT + i * 1.1) * 14;
-        const op = 0.5 + Math.sin(analyzeT + i * 1.1) * 0.4;
-        ctx.beginPath();
-        ctx.arc(cx + ox, cy - bounce, 6, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0,255,136,${op})`;
-        ctx.fill();
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      analyzeT+=0.07;
+      const cx=canvas.width/2, cy=canvas.height/2;
+      [-24,0,24].forEach((ox,i)=>{
+        const b=Math.sin(analyzeT+i*1.1)*14, op=0.5+Math.sin(analyzeT+i*1.1)*0.4;
+        ctx.beginPath(); ctx.arc(cx+ox,cy-b,6,0,Math.PI*2);
+        ctx.fillStyle=`rgba(0,255,136,${op})`; ctx.fill();
       });
     }
-
-    // ── Transmitting: waveform bars ────────────────────────────────────────────
-    let waveT = 0;
-    const wavePhases = [0, 0.7, 1.3, 0.4, 1.8, 1.1, 0.9];
     function drawTransmitting() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      waveT += 0.09;
-      const cx  = canvas.width / 2;
-      const cy  = canvas.height / 2;
-      const barW = 8;
-      const gap  = 6;
-      const n    = 7;
-      const totalW = n * barW + (n - 1) * gap;
-      const startX = cx - totalW / 2;
-
-      for (let i = 0; i < n; i++) {
-        const h   = 8 + Math.abs(Math.sin(waveT + wavePhases[i])) * 46;
-        const op  = 0.5 + Math.abs(Math.sin(waveT + wavePhases[i])) * 0.5;
-        const x   = startX + i * (barW + gap);
-        ctx.fillStyle = `rgba(0,255,136,${op})`;
-        ctx.fillRect(x, cy - h / 2, barW, h);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      waveT+=0.09;
+      const cx=canvas.width/2, cy=canvas.height/2;
+      const bW=8,gap=6,n=7,tot=n*bW+(n-1)*gap,sx=cx-tot/2;
+      for(let i=0;i<n;i++){
+        const h=8+Math.abs(Math.sin(waveT+wavePhases[i]))*46;
+        const op=0.5+Math.abs(Math.sin(waveT+wavePhases[i]))*0.5;
+        ctx.fillStyle=`rgba(0,255,136,${op})`;
+        ctx.fillRect(sx+i*(bW+gap),cy-h/2,bW,h);
       }
     }
-
-    // ── Animation loop ─────────────────────────────────────────────────────────
-    function draw() {
-      switch (currentMode) {
-        case 'idle':      drawStandby();     break;
-        case 'listening': drawListening();   break;
-        case 'thinking':  drawAnalyzing();   break;
-        case 'speaking':  drawTransmitting();break;
+    (function loop(){
+      switch(currentMode){
+        case 'idle':      drawStandby();      break;
+        case 'listening': drawListening();    break;
+        case 'thinking':  drawAnalyzing();    break;
+        case 'speaking':  drawTransmitting(); break;
         default:          drawStandby();
       }
-      animFrame = requestAnimationFrame(draw);
-    }
-    draw();
+      requestAnimationFrame(loop);
+    })();
 
-    // ── Mode label + pip mapping ───────────────────────────────────────────────
-    const modeLabels = {
-      idle:      'STANDBY',
-      listening: 'LISTENING',
-      thinking:  'ANALYZING',
-      speaking:  'TRANSMITTING',
-    };
+    // ── Clock ──────────────────────────────────────────────────────────
+    function tick(){ document.getElementById('sys-time').textContent = new Date().toUTCString().split(' ')[4]+' UTC'; }
+    tick(); setInterval(tick,1000);
 
-    function setVisMode(mode) {
-      currentMode = mode;
-      const lbl = document.getElementById('mode-label');
-      lbl.textContent = modeLabels[mode] || 'STANDBY';
-    }
+    // ── Mode ───────────────────────────────────────────────────────────
+    const modeLabels={idle:'STANDBY',listening:'LISTENING',thinking:'ANALYZING',speaking:'TRANSMITTING'};
+    function setMode(m){ currentMode=m; document.getElementById('mode-label').textContent=modeLabels[m]||'STANDBY'; }
 
-    // ── Clock ──────────────────────────────────────────────────────────────────
-    function updateClock() {
-      const now = new Date();
-      document.getElementById('sys-time').textContent =
-        now.toUTCString().split(' ')[4] + ' UTC';
-    }
-    updateClock();
-    setInterval(updateClock, 1000);
-
-    // ── Button logic ───────────────────────────────────────────────────────────
+    // ── Button + widget bridge ─────────────────────────────────────────
     const btn    = document.getElementById('btn-activate');
     const status = document.getElementById('status-text');
-    let conversation = null;
+    let active = false;
 
-    async function startSession() {
-      if (AGENT_ID === 'agent_4801kr7pt4b7fexbgtqnj2xsmztg') {
-        status.textContent = 'ERROR: Replace AGENT_ID in widget source before deploying.';
-        return;
-      }
-      try {
-        btn.disabled = true;
-        status.textContent = 'ESTABLISHING SECURE CHANNEL...';
-        conversation = await Conversation.startSession({
-          agentId: AGENT_ID,
-          onModeChange: ({ mode }) => {
-            setVisMode(mode);
-            status.textContent = (modeLabels[mode] || 'STANDBY') + '...';
-          },
-          onError: (err) => {
-            console.error('VEKTOR error:', err);
-            status.textContent = 'COMM ERROR — RETRY';
-          },
-          onDisconnect: () => {
-            setVisMode('idle');
-            btn.textContent   = '[ ACTIVATE VEKTOR ]';
-            btn.classList.remove('active');
-            btn.disabled      = false;
-            status.textContent = 'SESSION ENDED // PRESS ACTIVATE TO RECONNECT';
-          },
-        });
-        btn.textContent = '[ TERMINATE SESSION ]';
-        btn.classList.add('active');
-        btn.disabled = false;
-        status.textContent = 'VOICE CHANNEL OPEN // SPEAK NOW';
-        setVisMode('listening');
-      } catch (e) {
-        console.error(e);
-        status.textContent = 'FAILED TO CONNECT — CHECK AGENT ID';
-        btn.disabled = false;
-      }
+    function getWidgetShadowBtn() {
+      const w = document.querySelector('elevenlabs-convai');
+      return (w && w.shadowRoot) ? w.shadowRoot.querySelector('button') : null;
     }
 
-    async function endSession() {
-      if (conversation) {
-        btn.disabled = true;
-        status.textContent = 'CLOSING CHANNEL...';
-        await conversation.endSession();
-        conversation = null;
+    function pollWidgetState() {
+      if (!active) return;
+      const w = document.querySelector('elevenlabs-convai');
+      if (w && w.shadowRoot) {
+        const inner = w.shadowRoot.querySelector('[class]');
+        if (inner) {
+          const cls = inner.className || '';
+          if      (cls.includes('speaking') || cls.includes('agent'))   { setMode('speaking');  status.textContent='TRANSMITTING...'; }
+          else if (cls.includes('thinking') || cls.includes('process'))  { setMode('thinking');  status.textContent='ANALYZING...'; }
+          else if (active)                                                { setMode('listening'); status.textContent='VOICE CHANNEL OPEN // SPEAK NOW'; }
+        }
+      }
+      setTimeout(pollWidgetState, 400);
+    }
+
+    function tryActivate() {
+      const wb = getWidgetShadowBtn();
+      if (wb) {
+        wb.click();
+        active = true;
+        btn.textContent = '[ TERMINATE SESSION ]';
+        btn.classList.add('active');
+        setMode('listening');
+        status.textContent = 'VOICE CHANNEL OPEN // SPEAK NOW';
+        pollWidgetState();
+      } else {
+        status.textContent = 'WIDGET NOT READY — RELOAD AND RETRY';
       }
     }
 
     btn.addEventListener('click', () => {
-      if (conversation) { endSession(); } else { startSession(); }
+      if (!active) {
+        tryActivate();
+      } else {
+        const wb = getWidgetShadowBtn();
+        if (wb) wb.click();
+        active = false;
+        btn.textContent = '[ ACTIVATE VEKTOR ]';
+        btn.classList.remove('active');
+        setMode('idle');
+        status.textContent = 'SESSION ENDED // PRESS ACTIVATE TO RECONNECT';
+      }
     });
 
+    // Enable button once widget script has had time to load
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.disabled = false;
+      status.textContent = 'PRESS ACTIVATE TO BEGIN VOICE SESSION';
+    }, 3000);
   </script>
 </body>
 </html>
